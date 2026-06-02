@@ -230,6 +230,7 @@
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Halte den Button gedrückt und sprich</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v3</p>
 
   <div class="transcript-box" id="transcriptBox">
     <p class="placeholder" id="transcriptText">Dein Text erscheint hier</p>
@@ -514,9 +515,19 @@
     micArea.addEventListener('mousedown', startRecording);
     document.addEventListener('mouseup', () => stopRecording());
 
-    // Service Worker registrieren (für Offline-Fähigkeit)
+    // Alten Service Worker + Cache entfernen, damit Updates IMMER ankommen.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        let hadOne = false;
+        regs.forEach((r) => { r.unregister(); hadOne = true; });
+        if (window.caches) {
+          caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+        }
+        // Falls ein alter SW diese Seite noch kontrolliert: einmal neu laden
+        if (hadOne && navigator.serviceWorker.controller) {
+          setTimeout(() => location.reload(), 300);
+        }
+      });
     }
   </script>
 </body>
