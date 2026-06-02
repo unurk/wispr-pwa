@@ -253,7 +253,7 @@
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Halte den Button gedrückt und sprich</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v4</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v5</p>
 
   <div class="transcript-box" id="transcriptBox">
     <p class="placeholder" id="transcriptText">Dein Text erscheint hier</p>
@@ -264,6 +264,7 @@
   <div class="manual-wrap hidden" id="manualWrap">
     <textarea id="manualBox" readonly></textarea>
     <p>Tippe ins Feld → „Alles auswählen" → „Kopieren"</p>
+    <p id="manualDiag" style="color:#555;font-size:10px"></p>
   </div>
 
   <p class="badge hidden" id="badge"></p>
@@ -291,6 +292,7 @@
     const copyBtn    = document.getElementById('copyBtn');
     const manualWrap = document.getElementById('manualWrap');
     const manualBox  = document.getElementById('manualBox');
+    const manualDiag = document.getElementById('manualDiag');
     const transcriptText = document.getElementById('transcriptText');
     const badge      = document.getElementById('badge');
     const hint       = document.getElementById('hint');
@@ -350,6 +352,7 @@
 
     // Echte Clipboard-API, ehrlich await'et. Wird im Click/Touch-Handler
     // aufgerufen, also gilt die User-Geste.
+    let lastDiag = '';
     async function copyText(text) {
       if (!text) return false;
       // 1. Moderne Clipboard-API (iOS 13.4+)
@@ -359,8 +362,10 @@
           copySuccess();
           return true;
         } catch (e) {
-          // weiter zu Fallback
+          lastDiag = 'clipboard-API vorhanden, aber writeText-Fehler: ' + (e && e.name ? e.name : e);
         }
+      } else {
+        lastDiag = 'navigator.clipboard nicht verfügbar (altes iOS?)';
       }
       // 2. execCommand-Versuch
       try {
@@ -398,6 +403,8 @@
       manualBox.value = text;
       manualWrap.classList.remove('hidden');
       showBadge('Automatisch ging nicht — tippe unten ins Feld, dann "Alles auswählen" → Kopieren', 'error');
+      // Diagnose anzeigen (klein, zum Melden)
+      manualDiag.textContent = 'Diagnose: ' + (lastDiag || 'unbekannt');
       // Vorauswählen, damit es leichter geht
       manualBox.focus();
       manualBox.setSelectionRange(0, text.length);
