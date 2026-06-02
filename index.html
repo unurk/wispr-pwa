@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Wispr" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Wispr</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: env(safe-area-inset-top, 48px) 24px env(safe-area-inset-bottom, 24px);
+      padding-top: max(env(safe-area-inset-top), 48px);
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+
+    .transcript-box {
+      width: 100%;
+      min-height: 120px;
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s;
+    }
+
+    .transcript-box p {
+      font-size: 17px;
+      line-height: 1.55;
+      width: 100%;
+    }
+
+    .transcript-box p.placeholder {
+      color: #444;
+      text-align: center;
+    }
+
+    .badge {
+      font-size: 13px;
+      font-weight: 600;
+      height: 22px;
+      margin-bottom: 8px;
+      transition: opacity 0.3s;
+    }
+
+    .badge.copied { color: #4ade80; }
+    .badge.error  { color: #f87171; text-align: center; max-width: 300px; }
+    .badge.hidden { opacity: 0; pointer-events: none; }
+
+    .mic-area {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 32px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .mic-ring {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: #ef4444;
+      opacity: 0;
+      transform: scale(1);
+      transition: opacity 0.2s;
+    }
+
+    .mic-area.recording .mic-ring {
+      opacity: 0.25;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.25); }
+    }
+
+    .mic-btn {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: #6366f1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.45);
+      transition: background 0.15s, transform 0.15s;
+      z-index: 1;
+    }
+
+    .mic-area.recording .mic-btn {
+      background: #ef4444;
+      box-shadow: 0 8px 32px rgba(239,68,68,0.45);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .hint {
+      color: #555;
+      font-size: 13px;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    /* History */
+    .history {
+      width: 100%;
+      margin-top: 32px;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .history-title {
+      color: #888;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .history-list {
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+      color: inherit;
+    }
+
+    .history-item span {
+      color: #ccc;
+      font-size: 14px;
+      flex: 1;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .history-item em {
+      font-style: normal;
+      color: #6366f1;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Kopier-Button (Fallback) */
+    .copy-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: #6366f1;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.done   { background: #16a34a; }
+    .copy-btn.hidden { display: none; }
+
+    /* Unsupported */
+    #unsupported {
+      display: none;
+      color: #f87171;
+      text-align: center;
+      margin-top: 40px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Wispr</h1>
+  <p class="subtitle">Halte den Button gedrückt und sprich</p>
+
+  <div class="transcript-box" id="transcriptBox">
+    <p class="placeholder" id="transcriptText">Dein Text erscheint hier</p>
+  </div>
+
+  <button class="copy-btn hidden" id="copyBtn">📋 Text kopieren</button>
+
+  <p class="badge hidden" id="badge"></p>
+
+  <div class="mic-area" id="micArea">
+    <div class="mic-ring"></div>
+    <div class="mic-btn" id="micBtn">🎤</div>
+  </div>
+
+  <p class="hint" id="hint">Gedrückt halten zum Aufnehmen</p>
+
+  <div id="unsupported">
+    Dein Browser unterstützt keine Spracherkennung.<br>
+    Bitte öffne diese Seite in <strong>Safari</strong> auf deinem iPhone.
+  </div>
+
+  <div class="history" id="historySection" style="display:none">
+    <p class="history-title">Verlauf</p>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <script>
+    const micArea    = document.getElementById('micArea');
+    const micBtn     = document.getElementById('micBtn');
+    const copyBtn    = document.getElementById('copyBtn');
+    const transcriptText = document.getElementById('transcriptText');
+    const badge      = document.getElementById('badge');
+    const hint       = document.getElementById('hint');
+    const historySection = document.getElementById('historySection');
+    const historyList = document.getElementById('historyList');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      document.getElementById('unsupported').style.display = 'block';
+      micArea.style.display = 'none';
+    }
+
+    let recognition = null;
+    let isRecording = false;
+    let stopping = false;
+    let currentText = '';   // bereits final erkannter Text
+    let liveText = '';      // das, was GERADE angezeigt wird (final + interim)
+    let finalTimeout = null;
+    const history = [];
+
+    function showBadge(text, cls) {
+      badge.textContent = text;
+      badge.className = 'badge ' + cls;
+    }
+
+    function hideBadge() {
+      badge.className = 'badge hidden';
+    }
+
+    function addToHistory(text) {
+      history.unshift(text);
+      if (history.length > 10) history.pop();
+      renderHistory();
+      historySection.style.display = 'flex';
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = '';
+      history.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'history-item';
+        btn.innerHTML = `<span>${item}</span><em>Kopieren</em>`;
+        btn.addEventListener('click', () => copyText(item));
+        historyList.appendChild(btn);
+      });
+    }
+
+    function copySuccess() {
+      showBadge('✓ Kopiert! Jetzt in WhatsApp einfügen', 'copied');
+      if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+      setTimeout(hideBadge, 4000);
+      // Button als "erledigt" markieren
+      copyBtn.textContent = '✓ Kopiert';
+      copyBtn.classList.add('done');
+    }
+
+    // Versucht synchron zu kopieren. Gibt true zurück bei Erfolg.
+    // MUSS direkt in einer User-Geste aufgerufen werden (touchend/click).
+    function tryCopySync(text) {
+      if (!text) return false;
+      // 1. execCommand-Fallback (synchron, am zuverlässigsten auf iOS)
+      try {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.contentEditable = 'true';
+        el.readOnly = false;
+        document.body.appendChild(el);
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        el.setSelectionRange(0, text.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(el);
+        if (ok) return true;
+      } catch {}
+      // 2. Async Clipboard API (funktioniert in der Geste ebenfalls)
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(() => {});
+        return true;
+      }
+      return false;
+    }
+
+    // Kopieren mit Erfolgs-/Fehler-Feedback (für direkte Tipps wie Verlauf + Button)
+    function copyText(text) {
+      const ok = tryCopySync(text);
+      if (ok) {
+        copySuccess();
+      } else {
+        showBadge('Tippe auf "Text kopieren"', 'error');
+      }
+      return ok;
+    }
+
+    // Zeigt den großen Kopier-Button mit dem fertigen Text
+    function showCopyButton(text) {
+      copyBtn.dataset.text = text;
+      copyBtn.textContent = '📋 Text kopieren';
+      copyBtn.classList.remove('done', 'hidden');
+    }
+
+    function hideCopyButton() {
+      copyBtn.classList.add('hidden');
+    }
+
+    function startRecording() {
+      if (isRecording || !SpeechRecognition) return;
+      isRecording = true;
+      currentText = '';
+      liveText = '';
+      hideBadge();
+      hideCopyButton();
+
+      transcriptText.textContent = 'Höre zu...';
+      transcriptText.className = 'placeholder';
+      micArea.classList.add('recording');
+      micBtn.textContent = '⏹';
+      hint.textContent = 'Loslassen um zu stoppen';
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'de-DE';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (e) => {
+        let interim = '';
+        let final = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            final += e.results[i][0].transcript;
+          } else {
+            interim += e.results[i][0].transcript;
+          }
+        }
+        currentText += final;
+        liveText = (currentText + interim).trim();
+        if (liveText) {
+          transcriptText.textContent = liveText;
+          transcriptText.className = '';
+        }
+      };
+
+      recognition.onerror = (e) => {
+        if (e.error === 'not-allowed') {
+          showBadge('Mikrofon-Zugriff verweigert. Bitte in Safari-Einstellungen erlauben.', 'error');
+        } else if (e.error !== 'aborted') {
+          showBadge('Fehler: ' + e.error, 'error');
+        }
+        stopRecording(false);
+      };
+
+      recognition.onend = () => {
+        if (isRecording) {
+          // Noch am Aufnehmen: iOS beendet manchmal automatisch — neu starten
+          try { recognition.start(); } catch {}
+        } else if (stopping) {
+          // Loslassen wurde verarbeitet, finaler Text steht fest
+          finalizeStop();
+        }
+      };
+
+      recognition.start();
+    }
+
+    // Schließt die Aufnahme ab: aktualisiert Anzeige, Verlauf und Button
+    // mit dem (ggf. vollständigeren) finalen Text.
+    function finalizeStop() {
+      if (!stopping) return;
+      stopping = false;
+      if (finalTimeout) { clearTimeout(finalTimeout); finalTimeout = null; }
+
+      if (recognition) { try { recognition.stop(); } catch {} recognition = null; }
+
+      const finalText = (currentText.trim() || liveText.trim());
+
+      if (finalText) {
+        transcriptText.textContent = finalText;
+        transcriptText.className = '';
+        addToHistory(finalText);
+        // Button auf finalen Text aktualisieren (falls erneut kopiert werden soll)
+        copyBtn.dataset.text = finalText;
+      } else {
+        transcriptText.textContent = 'Dein Text erscheint hier';
+        transcriptText.className = 'placeholder';
+        hideCopyButton();
+      }
+    }
+
+    function stopRecording(save = true) {
+      if (!isRecording) return;
+      isRecording = false;
+
+      micArea.classList.remove('recording');
+      micBtn.textContent = '🎤';
+      hint.textContent = 'Gedrückt halten zum Aufnehmen';
+
+      if (!save) {
+        // Abbruch (z.B. Fehler) — nicht kopieren
+        stopping = false;
+        if (recognition) { try { recognition.stop(); } catch {} recognition = null; }
+        if (!liveText.trim()) {
+          transcriptText.textContent = 'Dein Text erscheint hier';
+          transcriptText.className = 'placeholder';
+        }
+        return;
+      }
+
+      // ★ KERN: Sofort SYNCHRON kopieren, solange die User-Geste (Loslassen) gilt.
+      //   Wir kopieren den aktuell angezeigten Live-Text — der ist beim Loslassen da.
+      const textNow = liveText.trim();
+      if (textNow) {
+        const ok = tryCopySync(textNow);
+        if (ok) {
+          copySuccess();
+        }
+        // Button immer anbieten — als Sicherheitsnetz / zum erneuten Kopieren
+        showCopyButton(textNow);
+        transcriptText.textContent = textNow;
+        transcriptText.className = '';
+      } else {
+        transcriptText.textContent = 'Verarbeite...';
+      }
+
+      // Erkennung sauber beenden und finalen Text nachziehen
+      stopping = true;
+      if (recognition) { try { recognition.stop(); } catch {} }
+      finalTimeout = setTimeout(finalizeStop, 2000);
+    }
+
+    // Großer Kopier-Button (eigene User-Geste → immer erlaubt)
+    copyBtn.addEventListener('click', () => {
+      const text = copyBtn.dataset.text || '';
+      if (text) copyText(text);
+    });
+
+    // Touch-Events für das Gedrückthalten
+    micArea.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      startRecording();
+    }, { passive: false });
+
+    micArea.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      stopRecording();
+    }, { passive: false });
+
+    // Mouse-Events für den Test am PC
+    micArea.addEventListener('mousedown', startRecording);
+    document.addEventListener('mouseup', () => stopRecording());
+
+    // Service Worker registrieren (für Offline-Fähigkeit)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
