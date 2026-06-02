@@ -216,6 +216,29 @@
     .copy-btn.done   { background: #16a34a; }
     .copy-btn.hidden { display: none; }
 
+    /* Manueller Notnagel */
+    .manual-wrap { width: 100%; margin-bottom: 12px; }
+    .manual-wrap.hidden { display: none; }
+    .manual-wrap textarea {
+      width: 100%;
+      min-height: 80px;
+      background: #1a1a1a;
+      color: #fff;
+      border: 2px solid #6366f1;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 16px;
+      resize: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .manual-wrap p {
+      color: #888;
+      font-size: 12px;
+      margin-top: 6px;
+      text-align: center;
+    }
+
     /* Unsupported */
     #unsupported {
       display: none;
@@ -230,13 +253,18 @@
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Halte den Button gedrückt und sprich</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v3</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v4</p>
 
   <div class="transcript-box" id="transcriptBox">
     <p class="placeholder" id="transcriptText">Dein Text erscheint hier</p>
   </div>
 
   <button class="copy-btn hidden" id="copyBtn">📋 Text kopieren</button>
+
+  <div class="manual-wrap hidden" id="manualWrap">
+    <textarea id="manualBox" readonly></textarea>
+    <p>Tippe ins Feld → „Alles auswählen" → „Kopieren"</p>
+  </div>
 
   <p class="badge hidden" id="badge"></p>
 
@@ -261,6 +289,8 @@
     const micArea    = document.getElementById('micArea');
     const micBtn     = document.getElementById('micBtn');
     const copyBtn    = document.getElementById('copyBtn');
+    const manualWrap = document.getElementById('manualWrap');
+    const manualBox  = document.getElementById('manualBox');
     const transcriptText = document.getElementById('transcriptText');
     const badge      = document.getElementById('badge');
     const hint       = document.getElementById('hint');
@@ -313,49 +343,43 @@
       showBadge('✓ Kopiert! Jetzt in WhatsApp einfügen', 'copied');
       if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
       setTimeout(hideBadge, 4000);
-      // Button als "erledigt" markieren
       copyBtn.textContent = '✓ Kopiert';
       copyBtn.classList.add('done');
+      hideManual();
     }
 
-    // Versucht synchron zu kopieren. Gibt true zurück bei Erfolg.
-    // MUSS direkt in einer User-Geste aufgerufen werden (touchend/click).
-    function tryCopySync(text) {
+    // Echte Clipboard-API, ehrlich await'et. Wird im Click/Touch-Handler
+    // aufgerufen, also gilt die User-Geste.
+    async function copyText(text) {
       if (!text) return false;
-      // 1. execCommand-Fallback (synchron, am zuverlässigsten auf iOS)
+      // 1. Moderne Clipboard-API (iOS 13.4+)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copySuccess();
+          return true;
+        } catch (e) {
+          // weiter zu Fallback
+        }
+      }
+      // 2. execCommand-Versuch
       try {
         const el = document.createElement('textarea');
         el.value = text;
-        el.contentEditable = 'true';
-        el.readOnly = false;
+        el.style.position = 'fixed';
+        el.style.top = '0';
+        el.style.opacity = '0';
+        el.style.fontSize = '16px';
         document.body.appendChild(el);
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
+        el.focus();
         el.setSelectionRange(0, text.length);
         const ok = document.execCommand('copy');
         document.body.removeChild(el);
-        if (ok) return true;
+        if (ok) { copySuccess(); return true; }
       } catch {}
-      // 2. Async Clipboard API (funktioniert in der Geste ebenfalls)
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).catch(() => {});
-        return true;
-      }
+      // 3. Garantierter Notnagel: sichtbares Feld zum manuellen Kopieren
+      showManual(text);
       return false;
-    }
-
-    // Kopieren mit Erfolgs-/Fehler-Feedback (für direkte Tipps wie Verlauf + Button)
-    function copyText(text) {
-      const ok = tryCopySync(text);
-      if (ok) {
-        copySuccess();
-      } else {
-        showBadge('Tippe auf "Text kopieren"', 'error');
-      }
-      return ok;
     }
 
     // Zeigt den großen Kopier-Button mit dem fertigen Text
@@ -369,6 +393,20 @@
       copyBtn.classList.add('hidden');
     }
 
+    // Notnagel: sichtbares, vorausgewähltes Textfeld
+    function showManual(text) {
+      manualBox.value = text;
+      manualWrap.classList.remove('hidden');
+      showBadge('Automatisch ging nicht — tippe unten ins Feld, dann "Alles auswählen" → Kopieren', 'error');
+      // Vorauswählen, damit es leichter geht
+      manualBox.focus();
+      manualBox.setSelectionRange(0, text.length);
+    }
+
+    function hideManual() {
+      manualWrap.classList.add('hidden');
+    }
+
     function startRecording() {
       if (isRecording || !SpeechRecognition) return;
       isRecording = true;
@@ -376,6 +414,7 @@
       liveText = '';
       hideBadge();
       hideCopyButton();
+      hideManual();
 
       transcriptText.textContent = 'Höre zu...';
       transcriptText.className = 'placeholder';
@@ -472,13 +511,14 @@
         return;
       }
 
-      // ★ KERN: Sofort SYNCHRON kopieren, solange die User-Geste (Loslassen) gilt.
-      //   Wir kopieren den aktuell angezeigten Live-Text — der ist beim Loslassen da.
+      // ★ KERN: Kopieren JETZT anstoßen, solange die User-Geste (Loslassen) gilt.
+      //   writeText() wird synchron aufgerufen → Geste zählt; .then nur fürs Feedback.
       const textNow = liveText.trim();
       if (textNow) {
-        const ok = tryCopySync(textNow);
-        if (ok) {
-          copySuccess();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(textNow)
+            .then(copySuccess)
+            .catch(() => { /* Button/Notnagel stehen bereit */ });
         }
         // Button immer anbieten — als Sicherheitsnetz / zum erneuten Kopieren
         showCopyButton(textNow);
@@ -498,6 +538,14 @@
     copyBtn.addEventListener('click', () => {
       const text = copyBtn.dataset.text || '';
       if (text) copyText(text);
+    });
+
+    // Notnagel-Feld: Antippen wählt alles aus
+    manualBox.addEventListener('focus', () => {
+      manualBox.setSelectionRange(0, manualBox.value.length);
+    });
+    manualBox.addEventListener('click', () => {
+      manualBox.setSelectionRange(0, manualBox.value.length);
     });
 
     // Touch-Events für das Gedrückthalten
