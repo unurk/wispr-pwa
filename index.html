@@ -153,6 +153,7 @@
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Halte den Button gedrückt und sprich</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v10</p>
 
   <textarea id="resultBox" placeholder="Dein Text erscheint hier..." readonly></textarea>
   <button id="copyBtn">📋 Text kopieren</button>
@@ -288,6 +289,28 @@
       isRecording = false;
       stopTimer();
 
+      // ★ Zwischenablage JETZT reservieren (Geste vom Loslassen gilt noch!).
+      //   Der Text wird per Promise nachgeliefert, sobald Whisper fertig ist.
+      //   Klappt das, ist es echtes Auto-Kopieren ohne weiteren Tipp.
+      let clipResolve = null, clipReject = null;
+      let clipReserved = false;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          const textPromise = new Promise((res, rej) => { clipResolve = res; clipReject = rej; });
+          const blobPromise = textPromise.then(
+            (t) => new Blob([t], { type: 'text/plain' })
+          );
+          navigator.clipboard
+            .write([new ClipboardItem({ 'text/plain': blobPromise })])
+            .then(() => {
+              setStatus('✓ Kopiert! Jetzt in WhatsApp einfügen', 'ok');
+              setTimeout(() => setStatus(''), 4000);
+            })
+            .catch(() => { /* Button bleibt als Fallback */ });
+          clipReserved = true;
+        } catch { clipReserved = false; }
+      }
+
       // MediaRecorder sauber stoppen
       await new Promise((resolve) => {
         mediaRecorder.onstop = resolve;
@@ -300,6 +323,7 @@
 
       // Zu kurze Aufnahmen ignorieren
       if (blob.size < 1000) {
+        if (clipReject) clipReject();
         reset();
         return;
       }
@@ -341,13 +365,21 @@
           resultBox.value = text;
           copyBtn.style.display = 'block';
           copyBtn.dataset.text = text;
-          doCopy(text);
           addHistory(text);
+          // Reservierte Zwischenablage mit dem Text einlösen (= Auto-Kopieren)
+          if (clipReserved && clipResolve) {
+            clipResolve(text);
+          } else {
+            // Kein Reservierungs-Weg → Button antippen nötig
+            setStatus('Tippe „📋 Text kopieren"', 'info');
+          }
         } else {
+          if (clipReject) clipReject();
           setStatus('Nichts erkannt — versuch es nochmal.', 'error');
         }
 
       } catch (e) {
+        if (clipReject) clipReject();
         setStatus('Fehler: ' + e.message, 'error');
       } finally {
         reset();
