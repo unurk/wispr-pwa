@@ -21,8 +21,13 @@ export default async function handler(req, res) {
 
     // Base64 → Buffer → Blob für Groq
     const audioBuffer = Buffer.from(audio, 'base64');
-    const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'm4a';
-    const blob = new Blob([audioBuffer], { type: mimeType });
+    const baseMime = String(mimeType).split(';')[0].trim(); // 'audio/mp4;codecs=..' → 'audio/mp4'
+    const ext = baseMime.includes('webm') ? 'webm'
+              : baseMime.includes('ogg')  ? 'ogg'
+              : baseMime.includes('wav')  ? 'wav'
+              : baseMime.includes('mpeg') ? 'mp3'
+              : 'm4a';
+    const blob = new Blob([audioBuffer], { type: baseMime });
 
     const formData = new FormData();
     formData.append('file', blob, `recording.${ext}`);
@@ -39,7 +44,10 @@ export default async function handler(req, res) {
     if (!groqRes.ok) {
       const err = await groqRes.text();
       console.error('Groq Fehler:', err);
-      return res.status(502).json({ error: 'Groq API Fehler: ' + err });
+      return res.status(502).json({
+        error: 'Groq API Fehler: ' + err,
+        diag: `mime=${baseMime} ext=${ext} bytes=${audioBuffer.length}`,
+      });
     }
 
     const data = await groqRes.json();

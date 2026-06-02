@@ -267,7 +267,8 @@
                      : '';
       mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
-      mediaRecorder.start(100);
+      // WICHTIG: ohne Timeslice → iOS finalisiert die Datei sauber (gültige Header)
+      mediaRecorder.start();
 
       isRecording = true;
       resultBox.value = '';
@@ -330,7 +331,7 @@
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: res.statusText }));
-          throw new Error(err.error || res.statusText);
+          throw new Error((err.error || res.statusText) + (err.diag ? ' [' + err.diag + ']' : ''));
         }
 
         const data = await res.json();
