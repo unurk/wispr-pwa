@@ -253,7 +253,7 @@
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Halte den Button gedrückt und sprich</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v5</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v6</p>
 
   <div class="transcript-box" id="transcriptBox">
     <p class="placeholder" id="transcriptText">Dein Text erscheint hier</p>
@@ -542,9 +542,25 @@
     }
 
     // Großer Kopier-Button (eigene User-Geste → immer erlaubt)
-    copyBtn.addEventListener('click', () => {
+    copyBtn.addEventListener('click', async () => {
       const text = copyBtn.dataset.text || '';
-      if (text) copyText(text);
+      if (!text) { showBadge('Kein Text vorhanden', 'error'); return; }
+      let diag = [];
+      diag.push('text.length=' + text.length);
+      diag.push('clipboard=' + !!(navigator.clipboard));
+      diag.push('writeText=' + !!(navigator.clipboard && navigator.clipboard.writeText));
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copySuccess();
+          return;
+        } catch(e) {
+          diag.push('err=' + (e && e.name ? e.name : String(e)));
+        }
+      }
+      // Direkt Notnagel zeigen mit Diagnose
+      lastDiag = diag.join(' | ');
+      showManual(text);
     });
 
     // Notnagel-Feld: Antippen wählt alles aus
