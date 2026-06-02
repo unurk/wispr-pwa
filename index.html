@@ -25,64 +25,70 @@
       padding-top: max(env(safe-area-inset-top), 48px);
     }
 
-    h1 {
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      margin-bottom: 6px;
-    }
+    h1 { font-size: 32px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; }
 
-    .subtitle {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 28px;
-      text-align: center;
-    }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; text-align: center; }
 
-    .transcript-box {
+    /* Textfeld — immer sichtbar, iOS kann daraus nativ kopieren */
+    #resultBox {
       width: 100%;
-      min-height: 120px;
+      min-height: 110px;
       background: #1a1a1a;
+      color: #fff;
+      border: 2px solid transparent;
       border-radius: 16px;
-      padding: 18px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: border-color 0.2s;
-    }
-
-    .transcript-box p {
+      padding: 16px;
       font-size: 17px;
       line-height: 1.55;
-      width: 100%;
+      font-family: inherit;
+      resize: none;
+      margin-bottom: 10px;
+      -webkit-user-select: text;
+      user-select: text;
+      transition: border-color 0.2s;
     }
+    #resultBox:focus { outline: none; border-color: #6366f1; }
+    #resultBox.listening { border-color: #ef4444; }
 
-    .transcript-box p.placeholder {
-      color: #444;
+    /* Kopier-Button */
+    #copyBtn {
+      width: 100%;
+      padding: 15px;
+      border-radius: 14px;
+      border: none;
+      background: #6366f1;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s, transform 0.1s;
+      display: none;
+    }
+    #copyBtn:active { transform: scale(0.97); }
+    #copyBtn.done   { background: #16a34a; }
+
+    /* Statuszeile */
+    #status {
+      font-size: 13px;
+      color: #666;
+      height: 20px;
+      margin-bottom: 8px;
       text-align: center;
     }
+    #status.ok    { color: #4ade80; font-weight: 600; }
+    #status.error { color: #f87171; }
 
-    .badge {
-      font-size: 13px;
-      font-weight: 600;
-      height: 22px;
-      margin-bottom: 8px;
-      transition: opacity 0.3s;
-    }
-
-    .badge.copied { color: #4ade80; }
-    .badge.error  { color: #f87171; text-align: center; max-width: 300px; }
-    .badge.hidden { opacity: 0; pointer-events: none; }
-
-    .mic-area {
+    /* Mic-Button */
+    .mic-wrap {
       position: relative;
       width: 120px;
       height: 120px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 32px;
+      margin: 24px 0 12px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
@@ -90,186 +96,72 @@
 
     .mic-ring {
       position: absolute;
-      width: 120px;
-      height: 120px;
+      width: 120px; height: 120px;
       border-radius: 50%;
       background: #ef4444;
       opacity: 0;
-      transform: scale(1);
-      transition: opacity 0.2s;
+      animation: none;
     }
-
-    .mic-area.recording .mic-ring {
+    .mic-wrap.rec .mic-ring {
       opacity: 0.25;
       animation: pulse 1.2s ease-in-out infinite;
     }
-
     @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50%       { transform: scale(1.25); }
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.25); }
     }
 
     .mic-btn {
-      width: 88px;
-      height: 88px;
+      width: 88px; height: 88px;
       border-radius: 50%;
       background: #6366f1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 36px;
-      box-shadow: 0 8px 32px rgba(99,102,241,0.45);
-      transition: background 0.15s, transform 0.15s;
+      box-shadow: 0 8px 32px rgba(99,102,241,.45);
+      transition: background .15s, box-shadow .15s;
       z-index: 1;
     }
-
-    .mic-area.recording .mic-btn {
+    .mic-wrap.rec .mic-btn {
       background: #ef4444;
-      box-shadow: 0 8px 32px rgba(239,68,68,0.45);
+      box-shadow: 0 8px 32px rgba(239,68,68,.45);
       animation: pulse 1.2s ease-in-out infinite;
     }
 
-    .hint {
-      color: #555;
-      font-size: 13px;
-      margin-top: 16px;
-      text-align: center;
-    }
+    .hint { color: #555; font-size: 13px; text-align: center; margin-bottom: 24px; }
 
-    /* History */
-    .history {
-      width: 100%;
-      margin-top: 32px;
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .history-title {
-      color: #888;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .history-list {
-      overflow-y: auto;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .history-item {
-      background: #1a1a1a;
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      cursor: pointer;
+    /* Verlauf */
+    #history { width: 100%; flex: 1; overflow: hidden; display: none; flex-direction: column; }
+    .hist-title { color: #888; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .hist-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .hist-item {
+      background: #1a1a1a; border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      cursor: pointer; border: none; width: 100%; text-align: left; color: inherit;
       -webkit-tap-highlight-color: transparent;
-      border: none;
-      width: 100%;
-      text-align: left;
-      color: inherit;
     }
+    .hist-item span { color: #ccc; font-size: 14px; flex: 1; overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .hist-item em { font-style: normal; color: #6366f1; font-size: 12px; font-weight: 600; white-space: nowrap; }
 
-    .history-item span {
-      color: #ccc;
-      font-size: 14px;
-      flex: 1;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    .history-item em {
-      font-style: normal;
-      color: #6366f1;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    /* Kopier-Button (Fallback) */
-    .copy-btn {
-      width: 100%;
-      padding: 16px;
-      border-radius: 14px;
-      border: none;
-      background: #6366f1;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform 0.1s, background 0.2s;
-    }
-    .copy-btn:active { transform: scale(0.97); }
-    .copy-btn.done   { background: #16a34a; }
-    .copy-btn.hidden { display: none; }
-
-    /* Manueller Notnagel */
-    .manual-wrap { width: 100%; margin-bottom: 12px; }
-    .manual-wrap.hidden { display: none; }
-    .manual-wrap textarea {
-      width: 100%;
-      min-height: 80px;
-      background: #1a1a1a;
-      color: #fff;
-      border: 2px solid #6366f1;
-      border-radius: 12px;
-      padding: 12px;
-      font-size: 16px;
-      resize: none;
-      -webkit-user-select: text;
-      user-select: text;
-    }
-    .manual-wrap p {
-      color: #888;
-      font-size: 12px;
-      margin-top: 6px;
-      text-align: center;
-    }
-
-    /* Unsupported */
-    #unsupported {
-      display: none;
-      color: #f87171;
-      text-align: center;
-      margin-top: 40px;
-      font-size: 15px;
-      line-height: 1.6;
-    }
+    #unsupported { display: none; color: #f87171; text-align: center; margin-top: 40px; font-size: 15px; line-height: 1.6; }
   </style>
 </head>
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Halte den Button gedrückt und sprich</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v6</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v7</p>
 
-  <div class="transcript-box" id="transcriptBox">
-    <p class="placeholder" id="transcriptText">Dein Text erscheint hier</p>
-  </div>
+  <!-- Ergebnis-Textfeld (immer sichtbar nach Aufnahme) -->
+  <textarea id="resultBox" placeholder="Dein Text erscheint hier..." readonly></textarea>
 
-  <button class="copy-btn hidden" id="copyBtn">📋 Text kopieren</button>
+  <!-- Kopier-Button -->
+  <button id="copyBtn">📋 Text kopieren</button>
 
-  <div class="manual-wrap hidden" id="manualWrap">
-    <textarea id="manualBox" readonly></textarea>
-    <p>Tippe ins Feld → „Alles auswählen" → „Kopieren"</p>
-    <p id="manualDiag" style="color:#555;font-size:10px"></p>
-  </div>
+  <!-- Statuszeile -->
+  <p id="status"></p>
 
-  <p class="badge hidden" id="badge"></p>
-
-  <div class="mic-area" id="micArea">
+  <!-- Mic -->
+  <div class="mic-wrap" id="micWrap">
     <div class="mic-ring"></div>
     <div class="mic-btn" id="micBtn">🎤</div>
   </div>
@@ -281,324 +173,176 @@
     Bitte öffne diese Seite in <strong>Safari</strong> auf deinem iPhone.
   </div>
 
-  <div class="history" id="historySection" style="display:none">
-    <p class="history-title">Verlauf</p>
-    <div class="history-list" id="historyList"></div>
+  <div id="history">
+    <p class="hist-title">Verlauf</p>
+    <div class="hist-list" id="histList"></div>
   </div>
 
   <script>
-    const micArea    = document.getElementById('micArea');
-    const micBtn     = document.getElementById('micBtn');
-    const copyBtn    = document.getElementById('copyBtn');
-    const manualWrap = document.getElementById('manualWrap');
-    const manualBox  = document.getElementById('manualBox');
-    const manualDiag = document.getElementById('manualDiag');
-    const transcriptText = document.getElementById('transcriptText');
-    const badge      = document.getElementById('badge');
-    const hint       = document.getElementById('hint');
-    const historySection = document.getElementById('historySection');
-    const historyList = document.getElementById('historyList');
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
       document.getElementById('unsupported').style.display = 'block';
-      micArea.style.display = 'none';
+      document.getElementById('micWrap').style.display = 'none';
     }
+
+    const micWrap  = document.getElementById('micWrap');
+    const micBtn   = document.getElementById('micBtn');
+    const hint     = document.getElementById('hint');
+    const resultBox = document.getElementById('resultBox');
+    const copyBtn  = document.getElementById('copyBtn');
+    const status   = document.getElementById('status');
+    const histEl   = document.getElementById('history');
+    const histList = document.getElementById('histList');
 
     let recognition = null;
     let isRecording = false;
-    let stopping = false;
-    let currentText = '';   // bereits final erkannter Text
-    let liveText = '';      // das, was GERADE angezeigt wird (final + interim)
-    let finalTimeout = null;
+    let currentText = '';
+    let liveText = '';
     const history = [];
 
-    function showBadge(text, cls) {
-      badge.textContent = text;
-      badge.className = 'badge ' + cls;
+    // ─── Kopieren ───────────────────────────────────────────────────────────
+    // Strategie: resultBox ist sichtbar → text auswählen → execCommand('copy').
+    // Das ist die einzige Methode, die auf iOS Safari zuverlässig in einem
+    // synchronen Touch/Click-Handler funktioniert.
+    function doCopy(text) {
+      if (!text) return false;
+      resultBox.value = text;
+      resultBox.removeAttribute('readonly');
+      resultBox.focus();
+      resultBox.setSelectionRange(0, text.length);
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch {}
+      resultBox.setAttribute('readonly', '');
+
+      if (ok) {
+        setStatus('✓ Kopiert! Jetzt in WhatsApp einfügen', 'ok');
+        copyBtn.textContent = '✓ Kopiert';
+        copyBtn.classList.add('done');
+        setTimeout(() => {
+          copyBtn.textContent = '📋 Text kopieren';
+          copyBtn.classList.remove('done');
+        }, 3000);
+      } else {
+        setStatus('Tippe ins Textfeld oben → "Alles auswählen" → "Kopieren"', 'error');
+      }
+      return ok;
     }
 
-    function hideBadge() {
-      badge.className = 'badge hidden';
+    function setStatus(msg, cls) {
+      status.textContent = msg;
+      status.className = cls || '';
+      if (cls === 'ok') setTimeout(() => { status.textContent = ''; status.className = ''; }, 4000);
     }
 
-    function addToHistory(text) {
+    // ─── Verlauf ────────────────────────────────────────────────────────────
+    function addHistory(text) {
       history.unshift(text);
       if (history.length > 10) history.pop();
-      renderHistory();
-      historySection.style.display = 'flex';
-    }
-
-    function renderHistory() {
-      historyList.innerHTML = '';
+      histList.innerHTML = '';
       history.forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = 'history-item';
-        btn.innerHTML = `<span>${item}</span><em>Kopieren</em>`;
-        btn.addEventListener('click', () => copyText(item));
-        historyList.appendChild(btn);
+        const b = document.createElement('button');
+        b.className = 'hist-item';
+        b.innerHTML = `<span>${item}</span><em>Kopieren</em>`;
+        b.addEventListener('click', () => doCopy(item));
+        histList.appendChild(b);
       });
+      histEl.style.display = 'flex';
     }
 
-    function copySuccess() {
-      showBadge('✓ Kopiert! Jetzt in WhatsApp einfügen', 'copied');
-      if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
-      setTimeout(hideBadge, 4000);
-      copyBtn.textContent = '✓ Kopiert';
-      copyBtn.classList.add('done');
-      hideManual();
-    }
-
-    // Echte Clipboard-API, ehrlich await'et. Wird im Click/Touch-Handler
-    // aufgerufen, also gilt die User-Geste.
-    let lastDiag = '';
-    async function copyText(text) {
-      if (!text) return false;
-      // 1. Moderne Clipboard-API (iOS 13.4+)
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(text);
-          copySuccess();
-          return true;
-        } catch (e) {
-          lastDiag = 'clipboard-API vorhanden, aber writeText-Fehler: ' + (e && e.name ? e.name : e);
-        }
-      } else {
-        lastDiag = 'navigator.clipboard nicht verfügbar (altes iOS?)';
-      }
-      // 2. execCommand-Versuch
-      try {
-        const el = document.createElement('textarea');
-        el.value = text;
-        el.style.position = 'fixed';
-        el.style.top = '0';
-        el.style.opacity = '0';
-        el.style.fontSize = '16px';
-        document.body.appendChild(el);
-        el.focus();
-        el.setSelectionRange(0, text.length);
-        const ok = document.execCommand('copy');
-        document.body.removeChild(el);
-        if (ok) { copySuccess(); return true; }
-      } catch {}
-      // 3. Garantierter Notnagel: sichtbares Feld zum manuellen Kopieren
-      showManual(text);
-      return false;
-    }
-
-    // Zeigt den großen Kopier-Button mit dem fertigen Text
-    function showCopyButton(text) {
-      copyBtn.dataset.text = text;
-      copyBtn.textContent = '📋 Text kopieren';
-      copyBtn.classList.remove('done', 'hidden');
-    }
-
-    function hideCopyButton() {
-      copyBtn.classList.add('hidden');
-    }
-
-    // Notnagel: sichtbares, vorausgewähltes Textfeld
-    function showManual(text) {
-      manualBox.value = text;
-      manualWrap.classList.remove('hidden');
-      showBadge('Automatisch ging nicht — tippe unten ins Feld, dann "Alles auswählen" → Kopieren', 'error');
-      // Diagnose anzeigen (klein, zum Melden)
-      manualDiag.textContent = 'Diagnose: ' + (lastDiag || 'unbekannt');
-      // Vorauswählen, damit es leichter geht
-      manualBox.focus();
-      manualBox.setSelectionRange(0, text.length);
-    }
-
-    function hideManual() {
-      manualWrap.classList.add('hidden');
-    }
-
-    function startRecording() {
-      if (isRecording || !SpeechRecognition) return;
+    // ─── Aufnahme ───────────────────────────────────────────────────────────
+    function startRec() {
+      if (isRecording || !SR) return;
       isRecording = true;
       currentText = '';
       liveText = '';
-      hideBadge();
-      hideCopyButton();
-      hideManual();
-
-      transcriptText.textContent = 'Höre zu...';
-      transcriptText.className = 'placeholder';
-      micArea.classList.add('recording');
+      resultBox.value = '';
+      resultBox.placeholder = 'Höre zu...';
+      resultBox.classList.add('listening');
+      copyBtn.style.display = 'none';
+      micWrap.classList.add('rec');
       micBtn.textContent = '⏹';
       hint.textContent = 'Loslassen um zu stoppen';
+      setStatus('');
 
-      recognition = new SpeechRecognition();
+      recognition = new SR();
       recognition.lang = 'de-DE';
       recognition.interimResults = true;
       recognition.continuous = true;
-      recognition.maxAlternatives = 1;
 
       recognition.onresult = (e) => {
-        let interim = '';
-        let final = '';
+        let fin = '', interim = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) {
-            final += e.results[i][0].transcript;
-          } else {
-            interim += e.results[i][0].transcript;
-          }
+          if (e.results[i].isFinal) fin += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
         }
-        currentText += final;
+        currentText += fin;
         liveText = (currentText + interim).trim();
-        if (liveText) {
-          transcriptText.textContent = liveText;
-          transcriptText.className = '';
-        }
+        if (liveText) resultBox.value = liveText;
       };
 
       recognition.onerror = (e) => {
-        if (e.error === 'not-allowed') {
-          showBadge('Mikrofon-Zugriff verweigert. Bitte in Safari-Einstellungen erlauben.', 'error');
-        } else if (e.error !== 'aborted') {
-          showBadge('Fehler: ' + e.error, 'error');
-        }
-        stopRecording(false);
+        if (e.error !== 'aborted') setStatus('Fehler: ' + e.error, 'error');
+        stopRec(false);
       };
 
       recognition.onend = () => {
-        if (isRecording) {
-          // Noch am Aufnehmen: iOS beendet manchmal automatisch — neu starten
-          try { recognition.start(); } catch {}
-        } else if (stopping) {
-          // Loslassen wurde verarbeitet, finaler Text steht fest
-          finalizeStop();
-        }
+        if (isRecording) try { recognition.start(); } catch {}
       };
 
       recognition.start();
     }
 
-    // Schließt die Aufnahme ab: aktualisiert Anzeige, Verlauf und Button
-    // mit dem (ggf. vollständigeren) finalen Text.
-    function finalizeStop() {
-      if (!stopping) return;
-      stopping = false;
-      if (finalTimeout) { clearTimeout(finalTimeout); finalTimeout = null; }
-
-      if (recognition) { try { recognition.stop(); } catch {} recognition = null; }
-
-      const finalText = (currentText.trim() || liveText.trim());
-
-      if (finalText) {
-        transcriptText.textContent = finalText;
-        transcriptText.className = '';
-        addToHistory(finalText);
-        // Button auf finalen Text aktualisieren (falls erneut kopiert werden soll)
-        copyBtn.dataset.text = finalText;
-      } else {
-        transcriptText.textContent = 'Dein Text erscheint hier';
-        transcriptText.className = 'placeholder';
-        hideCopyButton();
-      }
-    }
-
-    function stopRecording(save = true) {
+    function stopRec(save = true) {
       if (!isRecording) return;
       isRecording = false;
-
-      micArea.classList.remove('recording');
+      micWrap.classList.remove('rec');
       micBtn.textContent = '🎤';
       hint.textContent = 'Gedrückt halten zum Aufnehmen';
+      resultBox.classList.remove('listening');
+      resultBox.placeholder = 'Dein Text erscheint hier...';
 
-      if (!save) {
-        // Abbruch (z.B. Fehler) — nicht kopieren
-        stopping = false;
-        if (recognition) { try { recognition.stop(); } catch {} recognition = null; }
-        if (!liveText.trim()) {
-          transcriptText.textContent = 'Dein Text erscheint hier';
-          transcriptText.className = 'placeholder';
-        }
-        return;
+      if (recognition) {
+        recognition.onend = null;
+        try { recognition.stop(); } catch {}
+        recognition = null;
       }
 
-      // ★ KERN: Kopieren JETZT anstoßen, solange die User-Geste (Loslassen) gilt.
-      //   writeText() wird synchron aufgerufen → Geste zählt; .then nur fürs Feedback.
-      const textNow = liveText.trim();
-      if (textNow) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(textNow)
-            .then(copySuccess)
-            .catch(() => { /* Button/Notnagel stehen bereit */ });
-        }
-        // Button immer anbieten — als Sicherheitsnetz / zum erneuten Kopieren
-        showCopyButton(textNow);
-        transcriptText.textContent = textNow;
-        transcriptText.className = '';
-      } else {
-        transcriptText.textContent = 'Verarbeite...';
-      }
+      if (!save) return;
 
-      // Erkennung sauber beenden und finalen Text nachziehen
-      stopping = true;
-      if (recognition) { try { recognition.stop(); } catch {} }
-      finalTimeout = setTimeout(finalizeStop, 2000);
+      // Beim Loslassen: sofort synchron kopieren (User-Geste gilt hier)
+      const text = liveText || currentText.trim();
+      if (text) {
+        resultBox.value = text;
+        copyBtn.style.display = 'block';
+        copyBtn.dataset.text = text;
+        doCopy(text);
+        addHistory(text);
+      }
     }
 
-    // Großer Kopier-Button (eigene User-Geste → immer erlaubt)
-    copyBtn.addEventListener('click', async () => {
-      const text = copyBtn.dataset.text || '';
-      if (!text) { showBadge('Kein Text vorhanden', 'error'); return; }
-      let diag = [];
-      diag.push('text.length=' + text.length);
-      diag.push('clipboard=' + !!(navigator.clipboard));
-      diag.push('writeText=' + !!(navigator.clipboard && navigator.clipboard.writeText));
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(text);
-          copySuccess();
-          return;
-        } catch(e) {
-          diag.push('err=' + (e && e.name ? e.name : String(e)));
-        }
-      }
-      // Direkt Notnagel zeigen mit Diagnose
-      lastDiag = diag.join(' | ');
-      showManual(text);
+    // ─── Events ─────────────────────────────────────────────────────────────
+    micWrap.addEventListener('touchstart', (e) => { e.preventDefault(); startRec(); }, { passive: false });
+    micWrap.addEventListener('touchend',   (e) => { e.preventDefault(); stopRec(); },  { passive: false });
+    micWrap.addEventListener('mousedown',  startRec);
+    document.addEventListener('mouseup',   () => stopRec());
+
+    copyBtn.addEventListener('click', () => {
+      const text = copyBtn.dataset.text || resultBox.value;
+      doCopy(text);
     });
 
-    // Notnagel-Feld: Antippen wählt alles aus
-    manualBox.addEventListener('focus', () => {
-      manualBox.setSelectionRange(0, manualBox.value.length);
-    });
-    manualBox.addEventListener('click', () => {
-      manualBox.setSelectionRange(0, manualBox.value.length);
+    // Textfeld antippen wählt alles aus
+    resultBox.addEventListener('focus', () => {
+      if (resultBox.value) setTimeout(() => resultBox.setSelectionRange(0, resultBox.value.length), 0);
     });
 
-    // Touch-Events für das Gedrückthalten
-    micArea.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      startRecording();
-    }, { passive: false });
-
-    micArea.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      stopRecording();
-    }, { passive: false });
-
-    // Mouse-Events für den Test am PC
-    micArea.addEventListener('mousedown', startRecording);
-    document.addEventListener('mouseup', () => stopRecording());
-
-    // Alten Service Worker + Cache entfernen, damit Updates IMMER ankommen.
+    // Service Worker entfernen (alten Cache aufräumen)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        let hadOne = false;
-        regs.forEach((r) => { r.unregister(); hadOne = true; });
-        if (window.caches) {
-          caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
-        }
-        // Falls ein alter SW diese Seite noch kontrolliert: einmal neu laden
-        if (hadOne && navigator.serviceWorker.controller) {
-          setTimeout(() => location.reload(), 300);
-        }
-      });
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => {
+          regs.forEach(r => r.unregister());
+          if (window.caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        });
     }
   </script>
 </body>
