@@ -26,24 +26,17 @@
     }
 
     h1 { font-size: 32px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; }
-
     .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; text-align: center; }
 
-    /* Textfelder */
     .box-wrap { width: 100%; margin-bottom: 10px; }
     .box-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 5px;
-      padding-left: 2px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: #555; margin-bottom: 5px; padding-left: 2px;
     }
 
     textarea.result-area {
       width: 100%;
-      min-height: 90px;
+      min-height: 86px;
       background: #1a1a1a;
       color: #fff;
       border: 2px solid transparent;
@@ -58,12 +51,20 @@
       transition: border-color 0.2s;
     }
     textarea.result-area:focus { outline: none; border-color: #6366f1; }
-    #resultBox.listening { border-color: #ef4444; }
-    #translationBox { color: #e2e8ff; border-color: #2a2a3a; }
-    #translationBox.translating { border-color: #6366f1; animation: glow 1s ease-in-out infinite alternate; }
-    @keyframes glow { from { border-color: #3b3e8a; } to { border-color: #6366f1; } }
 
-    /* Kopier-Button */
+    #resultBox.listening { border-color: #ef4444; }
+    #resultBox.loading   { border-color: #f59e0b; }
+
+    #translationBox { color: #e2e8ff; }
+    #translationBox.translating {
+      border-color: #6366f1;
+      animation: glow 1s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { border-color: #3b3e8a; }
+      to   { border-color: #6366f1; }
+    }
+
     #copyBtn {
       width: 100%;
       padding: 15px;
@@ -82,38 +83,42 @@
     #copyBtn:active { transform: scale(0.97); }
     #copyBtn.done   { background: #16a34a; }
 
-    /* Statuszeile */
     #status {
       font-size: 13px;
       color: #666;
-      height: 20px;
+      min-height: 20px;
       margin-bottom: 8px;
       text-align: center;
     }
     #status.ok    { color: #4ade80; font-weight: 600; }
     #status.error { color: #f87171; }
+    #status.info  { color: #f59e0b; }
 
-    /* Mic-Button */
+    #timer {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ef4444;
+      letter-spacing: 2px;
+      min-height: 40px;
+      display: none;
+      margin-bottom: 4px;
+    }
+
     .mic-wrap {
       position: relative;
-      width: 120px;
-      height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 24px 0 12px;
+      width: 120px; height: 120px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 16px 0 12px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-
     .mic-ring {
       position: absolute;
       width: 120px; height: 120px;
       border-radius: 50%;
       background: #ef4444;
       opacity: 0;
-      animation: none;
     }
     .mic-wrap.rec .mic-ring {
       opacity: 0.25;
@@ -123,7 +128,6 @@
       0%,100% { transform: scale(1); }
       50%      { transform: scale(1.25); }
     }
-
     .mic-btn {
       width: 88px; height: 88px;
       border-radius: 50%;
@@ -139,10 +143,14 @@
       box-shadow: 0 8px 32px rgba(239,68,68,.45);
       animation: pulse 1.2s ease-in-out infinite;
     }
+    .mic-wrap.loading .mic-btn {
+      background: #f59e0b;
+      box-shadow: 0 8px 32px rgba(245,158,11,.45);
+      animation: none;
+    }
 
     .hint { color: #555; font-size: 13px; text-align: center; margin-bottom: 24px; }
 
-    /* Verlauf */
     #history { width: 100%; flex: 1; overflow: hidden; display: none; flex-direction: column; }
     .hist-title { color: #888; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
     .hist-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
@@ -153,137 +161,130 @@
       -webkit-tap-highlight-color: transparent;
     }
     .hist-item .hist-texts { flex: 1; overflow: hidden; }
-    .hist-item .hist-de { color: #666; font-size: 12px; overflow: hidden;
-      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; margin-bottom: 3px; }
+    .hist-item .hist-de { color: #555; font-size: 12px; overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; margin-bottom: 2px; }
     .hist-item .hist-tr { color: #ccc; font-size: 14px; overflow: hidden;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .hist-item em { font-style: normal; color: #6366f1; font-size: 12px; font-weight: 600; white-space: nowrap; margin-top: 2px; }
-
-    #unsupported { display: none; color: #f87171; text-align: center; margin-top: 40px; font-size: 15px; line-height: 1.6; }
   </style>
 </head>
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Deutsch sprechen → Türkisch kopieren</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v8</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v12</p>
 
-  <!-- Deutsch -->
   <div class="box-wrap">
     <p class="box-label">🇩🇪 Deutsch</p>
-    <textarea id="resultBox" class="result-area" placeholder="Sprich auf Deutsch…" readonly></textarea>
+    <textarea id="resultBox" class="result-area" placeholder="Dein Text erscheint hier..." readonly></textarea>
   </div>
 
-  <!-- Türkisch -->
   <div class="box-wrap">
     <p class="box-label">🇹🇷 Türkisch</p>
     <textarea id="translationBox" class="result-area" placeholder="Übersetzung erscheint hier…" readonly></textarea>
   </div>
 
-  <!-- Kopier-Button -->
   <button id="copyBtn">📋 Türkischen Text kopieren</button>
-
-  <!-- Statuszeile -->
   <p id="status"></p>
+  <div id="timer">0:00</div>
 
-  <!-- Mic -->
   <div class="mic-wrap" id="micWrap">
     <div class="mic-ring"></div>
     <div class="mic-btn" id="micBtn">🎤</div>
   </div>
-
   <p class="hint" id="hint">Gedrückt halten zum Aufnehmen</p>
-
-  <div id="unsupported">
-    Dein Browser unterstützt keine Spracherkennung.<br>
-    Bitte öffne diese Seite in <strong>Safari</strong> auf deinem iPhone.
-  </div>
 
   <div id="history">
     <p class="hist-title">Verlauf</p>
     <div class="hist-list" id="histList"></div>
   </div>
 
-
   <script>
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      document.getElementById('unsupported').style.display = 'block';
-      document.getElementById('micWrap').style.display = 'none';
-    }
-
-    const micWrap       = document.getElementById('micWrap');
-    const micBtn        = document.getElementById('micBtn');
-    const hint          = document.getElementById('hint');
-    const resultBox     = document.getElementById('resultBox');
+    const micWrap        = document.getElementById('micWrap');
+    const micBtn         = document.getElementById('micBtn');
+    const hint           = document.getElementById('hint');
+    const resultBox      = document.getElementById('resultBox');
     const translationBox = document.getElementById('translationBox');
-    const copyBtn       = document.getElementById('copyBtn');
-    const status        = document.getElementById('status');
-    const histEl        = document.getElementById('history');
-    const histList      = document.getElementById('histList');
+    const copyBtn        = document.getElementById('copyBtn');
+    const statusEl       = document.getElementById('status');
+    const timerEl        = document.getElementById('timer');
+    const histEl         = document.getElementById('history');
+    const histList       = document.getElementById('histList');
 
-    let recognition = null;
-    let isRecording = false;
-    let currentText = '';
-    let liveText = '';
-    const history = [];
-
-    // ─── Kopieren (türkischer Text) ─────────────────────────────────────────
-    function doCopy(text, fromBox) {
-      if (!text) return false;
-      const box = fromBox || translationBox;
-      box.value = text;
-      box.removeAttribute('readonly');
-      box.focus();
-      box.setSelectionRange(0, text.length);
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch {}
-      box.setAttribute('readonly', '');
-
-      if (ok) {
-        setStatus('✓ Türkischer Text kopiert! Jetzt in WhatsApp einfügen', 'ok');
-        copyBtn.textContent = '✓ Kopiert';
-        copyBtn.classList.add('done');
-        setTimeout(() => {
-          copyBtn.textContent = '📋 Türkischen Text kopieren';
-          copyBtn.classList.remove('done');
-        }, 3000);
-      } else {
-        setStatus('Tippe ins türkische Textfeld → "Alles auswählen" → "Kopieren"', 'error');
-      }
-      return ok;
-    }
+    let mediaRecorder = null;
+    let audioChunks   = [];
+    let isRecording   = false;
+    let isLoading     = false;
+    let timerInterval = null;
+    let timerSecs     = 0;
+    const history     = [];
 
     function setStatus(msg, cls) {
-      status.textContent = msg;
-      status.className = cls || '';
-      if (cls === 'ok') setTimeout(() => { status.textContent = ''; status.className = ''; }, 4000);
+      statusEl.textContent = msg;
+      statusEl.className = cls || '';
     }
 
-    // ─── Übersetzung ────────────────────────────────────────────────────────
-    async function translate(text) {
+    function startTimer() {
+      timerSecs = 0;
+      timerEl.style.display = 'block';
+      timerEl.textContent = '0:00';
+      timerInterval = setInterval(() => {
+        timerSecs++;
+        const m = Math.floor(timerSecs / 60);
+        const s = String(timerSecs % 60).padStart(2, '0');
+        timerEl.textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerEl.style.display = 'none';
+    }
+
+    // ─── Kopieren (türkischer Text via Button = User-Geste) ─────────────────
+    function doCopy(text) {
+      if (!text) return;
+      translationBox.value = text;
+      translationBox.removeAttribute('readonly');
+      translationBox.focus();
+      translationBox.setSelectionRange(0, text.length);
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch {}
+      translationBox.setAttribute('readonly', '');
+      if (ok) {
+        setStatus('✓ Kopiert! Jetzt in WhatsApp einfügen', 'ok');
+        copyBtn.textContent = '✓ Kopiert';
+        copyBtn.classList.add('done');
+        setTimeout(() => { copyBtn.textContent = '📋 Türkischen Text kopieren'; copyBtn.classList.remove('done'); }, 3000);
+        setTimeout(() => setStatus(''), 4000);
+      } else {
+        setStatus('Tippe ins türkische Feld → "Alles auswählen" → "Kopieren"', 'error');
+      }
+    }
+
+    // ─── Übersetzung DE→TR ──────────────────────────────────────────────────
+    async function translate(deText) {
       translationBox.value = '';
       translationBox.classList.add('translating');
-      setStatus('Übersetze ins Türkische…');
-
+      setStatus('Übersetze ins Türkische…', 'info');
       try {
         const url = 'https://api.mymemory.translated.net/get?q='
-          + encodeURIComponent(text) + '&langpair=de|tr&de=unur@gmx.at';
+          + encodeURIComponent(deText) + '&langpair=de|tr';
         const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         const tr = data?.responseData?.translatedText;
         if (!tr) throw new Error('Keine Übersetzung');
         translationBox.value = tr;
-        translationBox.classList.remove('translating');
         copyBtn.dataset.text = tr;
         copyBtn.style.display = 'block';
-        setStatus('');
-        // Türkischen Text sofort kopieren
-        doCopy(tr, translationBox);
+        setStatus('Zum Kopieren den Button tippen ↓', 'info');
+        setTimeout(() => setStatus(''), 3000);
         return tr;
       } catch (err) {
-        translationBox.classList.remove('translating');
-        setStatus('Übersetzung fehlgeschlagen – Internetverbindung prüfen', 'error');
+        setStatus('Übersetzung fehlgeschlagen – Netz prüfen', 'error');
         return null;
+      } finally {
+        translationBox.classList.remove('translating');
       }
     }
 
@@ -301,11 +302,11 @@
         </div><em>Kopieren</em>`;
         b.addEventListener('click', () => {
           if (item.tr) {
-            translationBox.value = item.tr;
             resultBox.value = item.de;
+            translationBox.value = item.tr;
             copyBtn.dataset.text = item.tr;
             copyBtn.style.display = 'block';
-            doCopy(item.tr, translationBox);
+            doCopy(item.tr);
           }
         });
         histList.appendChild(b);
@@ -313,91 +314,127 @@
       histEl.style.display = 'flex';
     }
 
-    // ─── Aufnahme ───────────────────────────────────────────────────────────
-    function startRec() {
-      if (isRecording || !SR) return;
+    // ─── Aufnahme starten ───────────────────────────────────────────────────
+    async function startRec() {
+      if (isRecording || isLoading) return;
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        setStatus('Mikrofon-Zugriff verweigert. Bitte in Safari-Einstellungen erlauben.', 'error');
+        return;
+      }
+
+      audioChunks = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+                     : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                     : '';
+      mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.start();
+
       isRecording = true;
-      currentText = '';
-      liveText = '';
       resultBox.value = '';
       translationBox.value = '';
-      resultBox.placeholder = 'Höre zu…';
+      resultBox.placeholder = 'Aufnahme läuft...';
       resultBox.classList.add('listening');
       copyBtn.style.display = 'none';
       micWrap.classList.add('rec');
       micBtn.textContent = '⏹';
       hint.textContent = 'Loslassen um zu stoppen';
       setStatus('');
-
-      recognition = new SR();
-      recognition.lang = 'de-DE';
-      recognition.interimResults = true;
-      recognition.continuous = true;
-
-      recognition.onresult = (e) => {
-        let fin = '', interim = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) fin += e.results[i][0].transcript;
-          else interim += e.results[i][0].transcript;
-        }
-        currentText += fin;
-        liveText = (currentText + interim).trim();
-        if (liveText) resultBox.value = liveText;
-      };
-
-      recognition.onerror = (e) => {
-        if (e.error !== 'aborted') setStatus('Fehler: ' + e.error, 'error');
-        stopRec(false);
-      };
-
-      recognition.onend = () => {
-        if (isRecording) try { recognition.start(); } catch {}
-      };
-
-      recognition.start();
+      startTimer();
     }
 
-    async function stopRec(save = true) {
+    // ─── Aufnahme stoppen + transkribieren + übersetzen ─────────────────────
+    async function stopRec() {
       if (!isRecording) return;
       isRecording = false;
+      stopTimer();
+
+      await new Promise((resolve) => {
+        mediaRecorder.onstop = resolve;
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+      });
+
+      const mimeType = mediaRecorder.mimeType || 'audio/mp4';
+      const blob = new Blob(audioChunks, { type: mimeType });
+
+      if (blob.size < 1000) {
+        reset();
+        return;
+      }
+
+      isLoading = true;
       micWrap.classList.remove('rec');
+      micWrap.classList.add('loading');
+      micBtn.textContent = '⏳';
+      hint.textContent = 'Transkribiere...';
+      resultBox.classList.remove('listening');
+      resultBox.classList.add('loading');
+      resultBox.placeholder = 'Whisper transkribiert...';
+      setStatus('Whisper läuft...', 'info');
+
+      try {
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(blob);
+        });
+
+        const res = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio: base64, mimeType, lang: 'de' }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error((err.error || res.statusText) + (err.diag ? ' [' + err.diag + ']' : ''));
+        }
+
+        const data = await res.json();
+        const deText = (data.text || '').trim();
+
+        if (deText) {
+          resultBox.value = deText;
+          reset();
+          const trText = await translate(deText);
+          if (trText) addHistory(deText, trText);
+        } else {
+          setStatus('Nichts erkannt — versuch es nochmal.', 'error');
+          reset();
+        }
+
+      } catch (e) {
+        setStatus('Fehler: ' + e.message, 'error');
+        reset();
+      }
+    }
+
+    function reset() {
+      isLoading = false;
+      micWrap.classList.remove('rec', 'loading');
       micBtn.textContent = '🎤';
       hint.textContent = 'Gedrückt halten zum Aufnehmen';
-      resultBox.classList.remove('listening');
-      resultBox.placeholder = 'Sprich auf Deutsch…';
-
-      if (recognition) {
-        recognition.onend = null;
-        try { recognition.stop(); } catch {}
-        recognition = null;
-      }
-
-      if (!save) return;
-
-      const text = liveText || currentText.trim();
-      if (text) {
-        resultBox.value = text;
-        const trText = await translate(text);
-        if (trText) addHistory(text, trText);
-      }
+      resultBox.classList.remove('listening', 'loading');
+      resultBox.placeholder = 'Dein Text erscheint hier...';
     }
 
     // ─── Events ─────────────────────────────────────────────────────────────
     micWrap.addEventListener('touchstart', (e) => { e.preventDefault(); startRec(); }, { passive: false });
     micWrap.addEventListener('touchend',   (e) => { e.preventDefault(); stopRec(); },  { passive: false });
     micWrap.addEventListener('mousedown',  startRec);
-    document.addEventListener('mouseup',   () => stopRec());
+    document.addEventListener('mouseup',   () => { if (isRecording) stopRec(); });
 
-    copyBtn.addEventListener('click', () => {
-      const text = copyBtn.dataset.text || translationBox.value;
-      doCopy(text, translationBox);
-    });
+    copyBtn.addEventListener('click', () => doCopy(copyBtn.dataset.text || translationBox.value));
 
     translationBox.addEventListener('focus', () => {
       if (translationBox.value) setTimeout(() => translationBox.setSelectionRange(0, translationBox.value.length), 0);
     });
 
-    // Service Worker entfernen (alten Cache aufräumen)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations()
         .then(regs => {
