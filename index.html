@@ -29,26 +29,39 @@
 
     .subtitle { font-size: 14px; color: #666; margin-bottom: 28px; text-align: center; }
 
-    /* Textfeld — immer sichtbar, iOS kann daraus nativ kopieren */
-    #resultBox {
+    /* Textfelder */
+    .box-wrap { width: 100%; margin-bottom: 10px; }
+    .box-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 5px;
+      padding-left: 2px;
+    }
+
+    textarea.result-area {
       width: 100%;
-      min-height: 110px;
+      min-height: 90px;
       background: #1a1a1a;
       color: #fff;
       border: 2px solid transparent;
       border-radius: 16px;
-      padding: 16px;
-      font-size: 17px;
+      padding: 14px 16px;
+      font-size: 16px;
       line-height: 1.55;
       font-family: inherit;
       resize: none;
-      margin-bottom: 10px;
       -webkit-user-select: text;
       user-select: text;
       transition: border-color 0.2s;
     }
-    #resultBox:focus { outline: none; border-color: #6366f1; }
+    textarea.result-area:focus { outline: none; border-color: #6366f1; }
     #resultBox.listening { border-color: #ef4444; }
+    #translationBox { color: #e2e8ff; border-color: #2a2a3a; }
+    #translationBox.translating { border-color: #6366f1; animation: glow 1s ease-in-out infinite alternate; }
+    @keyframes glow { from { border-color: #3b3e8a; } to { border-color: #6366f1; } }
 
     /* Kopier-Button */
     #copyBtn {
@@ -135,27 +148,39 @@
     .hist-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
     .hist-item {
       background: #1a1a1a; border-radius: 12px; padding: 12px 14px;
-      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
       cursor: pointer; border: none; width: 100%; text-align: left; color: inherit;
       -webkit-tap-highlight-color: transparent;
     }
-    .hist-item span { color: #ccc; font-size: 14px; flex: 1; overflow: hidden;
+    .hist-item .hist-texts { flex: 1; overflow: hidden; }
+    .hist-item .hist-de { color: #666; font-size: 12px; overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; margin-bottom: 3px; }
+    .hist-item .hist-tr { color: #ccc; font-size: 14px; overflow: hidden;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-    .hist-item em { font-style: normal; color: #6366f1; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .hist-item em { font-style: normal; color: #6366f1; font-size: 12px; font-weight: 600; white-space: nowrap; margin-top: 2px; }
 
     #unsupported { display: none; color: #f87171; text-align: center; margin-top: 40px; font-size: 15px; line-height: 1.6; }
   </style>
 </head>
 <body>
   <h1>Wispr</h1>
-  <p class="subtitle">Halte den Button gedrückt und sprich</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v7</p>
+  <p class="subtitle">Deutsch sprechen → Türkisch kopieren</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v8</p>
 
-  <!-- Ergebnis-Textfeld (immer sichtbar nach Aufnahme) -->
-  <textarea id="resultBox" placeholder="Dein Text erscheint hier..." readonly></textarea>
+  <!-- Deutsch -->
+  <div class="box-wrap">
+    <p class="box-label">🇩🇪 Deutsch</p>
+    <textarea id="resultBox" class="result-area" placeholder="Sprich auf Deutsch…" readonly></textarea>
+  </div>
+
+  <!-- Türkisch -->
+  <div class="box-wrap">
+    <p class="box-label">🇹🇷 Türkisch</p>
+    <textarea id="translationBox" class="result-area" placeholder="Übersetzung erscheint hier…" readonly></textarea>
+  </div>
 
   <!-- Kopier-Button -->
-  <button id="copyBtn">📋 Text kopieren</button>
+  <button id="copyBtn">📋 Türkischen Text kopieren</button>
 
   <!-- Statuszeile -->
   <p id="status"></p>
@@ -178,6 +203,7 @@
     <div class="hist-list" id="histList"></div>
   </div>
 
+
   <script>
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
@@ -185,14 +211,15 @@
       document.getElementById('micWrap').style.display = 'none';
     }
 
-    const micWrap  = document.getElementById('micWrap');
-    const micBtn   = document.getElementById('micBtn');
-    const hint     = document.getElementById('hint');
-    const resultBox = document.getElementById('resultBox');
-    const copyBtn  = document.getElementById('copyBtn');
-    const status   = document.getElementById('status');
-    const histEl   = document.getElementById('history');
-    const histList = document.getElementById('histList');
+    const micWrap       = document.getElementById('micWrap');
+    const micBtn        = document.getElementById('micBtn');
+    const hint          = document.getElementById('hint');
+    const resultBox     = document.getElementById('resultBox');
+    const translationBox = document.getElementById('translationBox');
+    const copyBtn       = document.getElementById('copyBtn');
+    const status        = document.getElementById('status');
+    const histEl        = document.getElementById('history');
+    const histList      = document.getElementById('histList');
 
     let recognition = null;
     let isRecording = false;
@@ -200,30 +227,28 @@
     let liveText = '';
     const history = [];
 
-    // ─── Kopieren ───────────────────────────────────────────────────────────
-    // Strategie: resultBox ist sichtbar → text auswählen → execCommand('copy').
-    // Das ist die einzige Methode, die auf iOS Safari zuverlässig in einem
-    // synchronen Touch/Click-Handler funktioniert.
-    function doCopy(text) {
+    // ─── Kopieren (türkischer Text) ─────────────────────────────────────────
+    function doCopy(text, fromBox) {
       if (!text) return false;
-      resultBox.value = text;
-      resultBox.removeAttribute('readonly');
-      resultBox.focus();
-      resultBox.setSelectionRange(0, text.length);
+      const box = fromBox || translationBox;
+      box.value = text;
+      box.removeAttribute('readonly');
+      box.focus();
+      box.setSelectionRange(0, text.length);
       let ok = false;
       try { ok = document.execCommand('copy'); } catch {}
-      resultBox.setAttribute('readonly', '');
+      box.setAttribute('readonly', '');
 
       if (ok) {
-        setStatus('✓ Kopiert! Jetzt in WhatsApp einfügen', 'ok');
+        setStatus('✓ Türkischer Text kopiert! Jetzt in WhatsApp einfügen', 'ok');
         copyBtn.textContent = '✓ Kopiert';
         copyBtn.classList.add('done');
         setTimeout(() => {
-          copyBtn.textContent = '📋 Text kopieren';
+          copyBtn.textContent = '📋 Türkischen Text kopieren';
           copyBtn.classList.remove('done');
         }, 3000);
       } else {
-        setStatus('Tippe ins Textfeld oben → "Alles auswählen" → "Kopieren"', 'error');
+        setStatus('Tippe ins türkische Textfeld → "Alles auswählen" → "Kopieren"', 'error');
       }
       return ok;
     }
@@ -234,16 +259,55 @@
       if (cls === 'ok') setTimeout(() => { status.textContent = ''; status.className = ''; }, 4000);
     }
 
+    // ─── Übersetzung ────────────────────────────────────────────────────────
+    async function translate(text) {
+      translationBox.value = '';
+      translationBox.classList.add('translating');
+      setStatus('Übersetze ins Türkische…');
+
+      try {
+        const url = 'https://api.mymemory.translated.net/get?q='
+          + encodeURIComponent(text) + '&langpair=de|tr&de=unur@gmx.at';
+        const res = await fetch(url);
+        const data = await res.json();
+        const tr = data?.responseData?.translatedText;
+        if (!tr) throw new Error('Keine Übersetzung');
+        translationBox.value = tr;
+        translationBox.classList.remove('translating');
+        copyBtn.dataset.text = tr;
+        copyBtn.style.display = 'block';
+        setStatus('');
+        // Türkischen Text sofort kopieren
+        doCopy(tr, translationBox);
+        return tr;
+      } catch (err) {
+        translationBox.classList.remove('translating');
+        setStatus('Übersetzung fehlgeschlagen – Internetverbindung prüfen', 'error');
+        return null;
+      }
+    }
+
     // ─── Verlauf ────────────────────────────────────────────────────────────
-    function addHistory(text) {
-      history.unshift(text);
+    function addHistory(deText, trText) {
+      history.unshift({ de: deText, tr: trText });
       if (history.length > 10) history.pop();
       histList.innerHTML = '';
       history.forEach(item => {
         const b = document.createElement('button');
         b.className = 'hist-item';
-        b.innerHTML = `<span>${item}</span><em>Kopieren</em>`;
-        b.addEventListener('click', () => doCopy(item));
+        b.innerHTML = `<div class="hist-texts">
+          <div class="hist-de">${item.de}</div>
+          <div class="hist-tr">${item.tr || '…'}</div>
+        </div><em>Kopieren</em>`;
+        b.addEventListener('click', () => {
+          if (item.tr) {
+            translationBox.value = item.tr;
+            resultBox.value = item.de;
+            copyBtn.dataset.text = item.tr;
+            copyBtn.style.display = 'block';
+            doCopy(item.tr, translationBox);
+          }
+        });
         histList.appendChild(b);
       });
       histEl.style.display = 'flex';
@@ -256,7 +320,8 @@
       currentText = '';
       liveText = '';
       resultBox.value = '';
-      resultBox.placeholder = 'Höre zu...';
+      translationBox.value = '';
+      resultBox.placeholder = 'Höre zu…';
       resultBox.classList.add('listening');
       copyBtn.style.display = 'none';
       micWrap.classList.add('rec');
@@ -292,14 +357,14 @@
       recognition.start();
     }
 
-    function stopRec(save = true) {
+    async function stopRec(save = true) {
       if (!isRecording) return;
       isRecording = false;
       micWrap.classList.remove('rec');
       micBtn.textContent = '🎤';
       hint.textContent = 'Gedrückt halten zum Aufnehmen';
       resultBox.classList.remove('listening');
-      resultBox.placeholder = 'Dein Text erscheint hier...';
+      resultBox.placeholder = 'Sprich auf Deutsch…';
 
       if (recognition) {
         recognition.onend = null;
@@ -309,14 +374,11 @@
 
       if (!save) return;
 
-      // Beim Loslassen: sofort synchron kopieren (User-Geste gilt hier)
       const text = liveText || currentText.trim();
       if (text) {
         resultBox.value = text;
-        copyBtn.style.display = 'block';
-        copyBtn.dataset.text = text;
-        doCopy(text);
-        addHistory(text);
+        const trText = await translate(text);
+        if (trText) addHistory(text, trText);
       }
     }
 
@@ -327,13 +389,12 @@
     document.addEventListener('mouseup',   () => stopRec());
 
     copyBtn.addEventListener('click', () => {
-      const text = copyBtn.dataset.text || resultBox.value;
-      doCopy(text);
+      const text = copyBtn.dataset.text || translationBox.value;
+      doCopy(text, translationBox);
     });
 
-    // Textfeld antippen wählt alles aus
-    resultBox.addEventListener('focus', () => {
-      if (resultBox.value) setTimeout(() => resultBox.setSelectionRange(0, resultBox.value.length), 0);
+    translationBox.addEventListener('focus', () => {
+      if (translationBox.value) setTimeout(() => translationBox.setSelectionRange(0, translationBox.value.length), 0);
     });
 
     // Service Worker entfernen (alten Cache aufräumen)
