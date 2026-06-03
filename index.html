@@ -171,7 +171,7 @@
 <body>
   <h1>Wispr</h1>
   <p class="subtitle">Deutsch sprechen → Türkisch kopieren</p>
-  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v12</p>
+  <p style="color:#333;font-size:11px;margin-top:-22px;margin-bottom:22px">v13</p>
 
   <div class="box-wrap">
     <p class="box-label">🇩🇪 Deutsch</p>
@@ -183,7 +183,7 @@
     <textarea id="translationBox" class="result-area" placeholder="Übersetzung erscheint hier…" readonly></textarea>
   </div>
 
-  <button id="copyBtn">📋 Türkischen Text kopieren</button>
+  <button id="copyBtn">📋 Türkisch kopieren</button>
   <p id="status"></p>
   <div id="timer">0:00</div>
 
@@ -240,6 +240,7 @@
       timerEl.style.display = 'none';
     }
 
+    // Türkisch manuell kopieren (Button-Klick = User-Geste)
     function doCopy(text) {
       if (!text) return;
       translationBox.value = text;
@@ -250,16 +251,17 @@
       try { ok = document.execCommand('copy'); } catch {}
       translationBox.setAttribute('readonly', '');
       if (ok) {
-        setStatus('✓ Kopiert! Jetzt in WhatsApp einfügen', 'ok');
+        setStatus('✓ Türkisch kopiert!', 'ok');
         copyBtn.textContent = '✓ Kopiert';
         copyBtn.classList.add('done');
-        setTimeout(() => { copyBtn.textContent = '📋 Türkischen Text kopieren'; copyBtn.classList.remove('done'); }, 3000);
+        setTimeout(() => { copyBtn.textContent = '📋 Türkisch kopieren'; copyBtn.classList.remove('done'); }, 3000);
         setTimeout(() => setStatus(''), 4000);
       } else {
         setStatus('Tippe ins türkische Feld → "Alles auswählen" → "Kopieren"', 'error');
       }
     }
 
+    // Übersetzung DE→TR
     async function translate(deText) {
       translationBox.value = '';
       translationBox.classList.add('translating');
@@ -348,6 +350,24 @@
       isRecording = false;
       stopTimer();
 
+      // Zwischenablage JETZT reservieren (noch innerhalb der User-Geste von touchend).
+      // Der deutsche Text wird per Promise nachgeliefert, sobald Whisper fertig ist.
+      let clipResolve = null, clipReject = null, clipReserved = false;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          const textPromise = new Promise((res, rej) => { clipResolve = res; clipReject = rej; });
+          const blobPromise = textPromise.then(t => new Blob([t], { type: 'text/plain' }));
+          navigator.clipboard
+            .write([new ClipboardItem({ 'text/plain': blobPromise })])
+            .then(() => {
+              setStatus('✓ Deutsch kopiert! Jetzt in WhatsApp einfügen', 'ok');
+              setTimeout(() => setStatus(''), 4000);
+            })
+            .catch(() => {});
+          clipReserved = true;
+        } catch { clipReserved = false; }
+      }
+
       await new Promise((resolve) => {
         mediaRecorder.onstop = resolve;
         mediaRecorder.stop();
@@ -358,6 +378,7 @@
       const blob = new Blob(audioChunks, { type: mimeType });
 
       if (blob.size < 1000) {
+        if (clipReject) clipReject();
         reset();
         return;
       }
@@ -395,15 +416,22 @@
 
         if (deText) {
           resultBox.value = deText;
+          if (clipReserved && clipResolve) {
+            clipResolve(deText);
+          } else {
+            setStatus('Tippe auf den deutschen Text → kopieren', 'info');
+          }
           reset();
           const trText = await translate(deText);
           if (trText) addHistory(deText, trText);
         } else {
+          if (clipReject) clipReject();
           setStatus('Nichts erkannt — versuch es nochmal.', 'error');
           reset();
         }
 
       } catch (e) {
+        if (clipReject) clipReject();
         setStatus('Fehler: ' + e.message, 'error');
         reset();
       }
