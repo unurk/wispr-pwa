@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     const data = await groqRes.json();
     const rawText = (data.text ?? '').trim();
 
-    // LLM-Feinschliff: Satzzeichen, Groß/Kleinschreibung, Füllwörter raus.
+    // LLM-Feinschliff: nur Formatierung, niemals Inhalt ändern.
     const polished = rawText ? await polishText(rawText, apiKey, lang) : '';
 
     return res.status(200).json({ text: polished || rawText, raw: rawText });
@@ -64,19 +64,19 @@ export default async function handler(req, res) {
   }
 }
 
-// Schickt den Roh-Transkript-Text durch ein schnelles LLM zur Bereinigung.
-// Bei jedem Fehler wird einfach der Originaltext zurückgegeben (nie blockieren).
+// Bereinigt nur Formatierung (Zeichensetzung, Füllwörter) — ändert niemals den Inhalt.
 async function polishText(text, apiKey, lang) {
   try {
     const system =
-      'Du bist ein Korrektor für diktierten Text. Du bekommst eine rohe ' +
-      'Sprachtranskription und gibst sie sauber zurück. Regeln: ' +
-      '1) Korrigiere Zeichensetzung und Groß-/Kleinschreibung. ' +
+      'Du bist ein reiner Formatierungs-Korrektor für diktierten Text. ' +
+      'Deine einzige Aufgabe ist es, den Text sauber zu formatieren. ' +
+      'ABSOLUTE REGELN: ' +
+      '1) Korrigiere nur Zeichensetzung und Groß-/Kleinschreibung. ' +
       '2) Entferne Füllwörter und Versprecher (ähm, äh, also, halt, ne, sozusagen). ' +
-      '3) Verbessere offensichtliche Erkennungsfehler aus dem Kontext. ' +
-      '4) Ändere NIEMALS den Inhalt, füge nichts hinzu, kürze nicht den Sinn. ' +
+      '3) Ändere NIEMALS den Inhalt – Fragen bleiben Fragen, Aussagen bleiben Aussagen. ' +
+      '4) Füge NICHTS hinzu und lasse NICHTS weg außer Füllwörtern. ' +
       '5) Behalte die Originalsprache bei, übersetze nicht. ' +
-      '6) Gib AUSSCHLIESSLICH den bereinigten Text zurück, ohne Anführungszeichen, ' +
+      '6) Gib AUSSCHLIESSLICH den formatierten Text zurück, ohne Anführungszeichen, ' +
       'ohne Erklärung, ohne Einleitung.';
 
     const llmRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -87,7 +87,7 @@ async function polishText(text, apiKey, lang) {
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        temperature: 0.2,
+        temperature: 0,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: text },
