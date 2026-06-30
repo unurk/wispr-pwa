@@ -303,9 +303,26 @@
       }
     }
 
-    function addHistory(deText, trText) {
-      history.unshift({ de: deText, tr: trText });
-      if (history.length > 10) history.pop();
+    const HIST_KEY = 'wispr_history_v1';
+
+    function loadHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+        if (Array.isArray(saved)) {
+          // nur valide Einträge übernehmen
+          saved.forEach(it => {
+            if (it && typeof it.de === 'string') history.push({ de: it.de, tr: it.tr || '' });
+          });
+        }
+      } catch {}
+      if (history.length) renderHistory();
+    }
+
+    function saveHistory() {
+      try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); } catch {}
+    }
+
+    function renderHistory() {
       histList.innerHTML = '';
       history.forEach(item => {
         const b = document.createElement('button');
@@ -335,7 +352,14 @@
         });
         histList.appendChild(b);
       });
-      histEl.style.display = 'flex';
+      histEl.style.display = history.length ? 'flex' : 'none';
+    }
+
+    function addHistory(deText, trText) {
+      history.unshift({ de: deText, tr: trText });
+      if (history.length > 10) history.pop();
+      saveHistory();
+      renderHistory();
     }
 
     async function startRec() {
@@ -498,6 +522,9 @@
     translationBox.addEventListener('focus', () => {
       if (translationBox.value) setTimeout(() => translationBox.setSelectionRange(0, translationBox.value.length), 0);
     });
+
+    // Verlauf aus dem letzten Besuch wiederherstellen.
+    loadHistory();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations()
