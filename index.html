@@ -153,7 +153,14 @@
     .hint { color: #555; font-size: 13px; text-align: center; margin-bottom: 24px; }
 
     #history { width: 100%; flex: 1; overflow: hidden; display: none; flex-direction: column; }
-    .hist-title { color: #888; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .hist-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .hist-title { color: #888; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    #clearHistBtn {
+      background: none; border: none; color: #f87171;
+      font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #clearHistBtn:active { opacity: 0.6; }
     .hist-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
     .hist-item {
       background: #1a1a1a; border-radius: 12px; padding: 12px 14px;
@@ -196,7 +203,10 @@
   <p class="hint" id="hint">Gedrückt halten zum Aufnehmen</p>
 
   <div id="history">
-    <p class="hist-title">Verlauf</p>
+    <div class="hist-head">
+      <p class="hist-title">Verlauf</p>
+      <button id="clearHistBtn" type="button">Löschen</button>
+    </div>
     <div class="hist-list" id="histList"></div>
   </div>
 
@@ -211,6 +221,7 @@
     const timerEl        = document.getElementById('timer');
     const histEl         = document.getElementById('history');
     const histList       = document.getElementById('histList');
+    const clearHistBtn   = document.getElementById('clearHistBtn');
 
     let mediaRecorder = null;
     let audioChunks   = [];
@@ -361,6 +372,15 @@
       saveHistory();
       renderHistory();
     }
+
+    function clearHistory() {
+      if (!history.length) return;
+      if (!confirm('Gesamten Verlauf löschen?')) return;
+      history.length = 0;
+      try { localStorage.removeItem(HIST_KEY); } catch {}
+      renderHistory();
+    }
+    clearHistBtn.addEventListener('click', clearHistory);
 
     async function startRec() {
       if (isRecording || isLoading) return;
