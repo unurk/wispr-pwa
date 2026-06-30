@@ -13,11 +13,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { audio, mimeType = 'audio/mp4', lang = 'de' } = req.body;
+    const { audio, mimeType = 'audio/mp4', lang: rawLang = 'de' } = req.body;
 
     if (!audio) {
       return res.status(400).json({ error: 'Kein Audio empfangen' });
     }
+
+    // Sprache gegen Whitelist prüfen – nie ungeprüft an Groq weiterreichen.
+    const ALLOWED_LANGS = new Set(['de', 'tr', 'en', 'fr', 'es', 'it']);
+    const lang = ALLOWED_LANGS.has(rawLang) ? rawLang : 'de';
 
     // Base64 → Buffer → Blob für Groq
     const audioBuffer = Buffer.from(audio, 'base64');
@@ -43,9 +47,9 @@ export default async function handler(req, res) {
 
     if (!groqRes.ok) {
       const err = await groqRes.text();
-      console.error('Groq Fehler:', err);
+      console.error('Groq Fehler:', err); // voller Fehler nur ins Server-Log, nicht zum Client
       return res.status(502).json({
-        error: 'Groq API Fehler: ' + err,
+        error: 'Transkription fehlgeschlagen',
         diag: `mime=${baseMime} ext=${ext} bytes=${audioBuffer.length}`,
       });
     }

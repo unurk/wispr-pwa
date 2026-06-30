@@ -188,7 +188,8 @@
   <p id="status"></p>
   <div id="timer">0:00</div>
 
-  <div class="mic-wrap" id="micWrap">
+  <div class="mic-wrap" id="micWrap" role="button" tabindex="0"
+       aria-label="Aufnahme – gedrückt halten zum Sprechen">
     <div class="mic-ring"></div>
     <div class="mic-btn" id="micBtn">🎤</div>
   </div>
@@ -215,9 +216,21 @@
     let audioChunks   = [];
     let isRecording   = false;
     let isLoading     = false;
+    let pressActive   = false;   // wird beim Loslassen false → bricht eine noch laufende Start-Anfrage ab
     let timerInterval = null;
     let timerSecs     = 0;
     const history     = [];
+
+    // MyMemory hebt das Tageslimit an, wenn eine E-Mail mitgeschickt wird.
+    // Aus Datenschutzgründen NICHT hier hartkodieren – bei Bedarf eintragen.
+    const MM_EMAIL = '';
+
+    // fetch mit Timeout: verhindert, dass die UI bei hängender Verbindung festklemmt.
+    function fetchWithTimeout(url, opts = {}, ms = 15000) {
+      const ctrl = new AbortController();
+      const id = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
+    }
 
     function setStatus(msg, cls) {
       statusEl.textContent = msg;
@@ -269,8 +282,9 @@
       setStatus('Übersetze ins Türkische…', 'info');
       try {
         const url = 'https://api.mymemory.translated.net/get?q='
-          + encodeURIComponent(deText) + '&langpair=de|tr';
-        const res = await fetch(url);
+          + encodeURIComponent(deText) + '&langpair=de|tr'
+          + (MM_EMAIL ? '&de=' + encodeURIComponent(MM_EMAIL) : '');
+        const res = await fetchWithTimeout(url, {}, 15000);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         const tr = data?.responseData?.translatedText;
@@ -296,10 +310,20 @@
       history.forEach(item => {
         const b = document.createElement('button');
         b.className = 'hist-item';
-        b.innerHTML = `<div class="hist-texts">
-          <div class="hist-de">${item.de}</div>
-          <div class="hist-tr">${item.tr || '…'}</div>
-        </div><em>Kopieren</em>`;
+        // textContent statt innerHTML: Text aus Whisper/Übersetzungs-API
+        // wird so nie als HTML interpretiert (kein XSS).
+        const texts = document.createElement('div');
+        texts.className = 'hist-texts';
+        const de = document.createElement('div');
+        de.className = 'hist-de';
+        de.textContent = item.de;
+        const tr = document.createElement('div');
+        tr.className = 'hist-tr';
+        tr.textContent = item.tr || '…';
+        texts.append(de, tr);
+        const em = document.createElement('em');
+        em.textContent = 'Kopieren';
+        b.append(texts, em);
         b.addEventListener('click', () => {
           if (item.tr) {
             resultBox.value = item.de;
@@ -316,12 +340,20 @@
 
     async function startRec() {
       if (isRecording || isLoading) return;
+      pressActive = true;
 
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
+        pressActive = false;
         setStatus('Mikrofon-Zugriff verweigert. Bitte in Safari-Einstellungen erlauben.', 'error');
+        return;
+      }
+
+      // Nutzer hat schon wieder losgelassen, während die Freigabe lief → Aufnahme verwerfen.
+      if (!pressActive) {
+        stream.getTracks().forEach(t => t.stop());
         return;
       }
 
@@ -347,6 +379,7 @@
     }
 
     async function stopRec() {
+      pressActive = false;
       if (!isRecording) return;
       isRecording = false;
       stopTimer();
@@ -401,11 +434,11 @@
           reader.readAsDataURL(blob);
         });
 
-        const res = await fetch('/api/transcribe', {
+        const res = await fetchWithTimeout('/api/transcribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ audio: base64, mimeType, lang: 'de' }),
-        });
+        }, 30000);
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -451,6 +484,14 @@
     micWrap.addEventListener('touchend',   (e) => { e.preventDefault(); stopRec(); },  { passive: false });
     micWrap.addEventListener('mousedown',  startRec);
     document.addEventListener('mouseup',   () => { if (isRecording) stopRec(); });
+
+    // Tastatur: Leertaste/Enter gedrückt halten zum Aufnehmen (Barrierefreiheit).
+    micWrap.addEventListener('keydown', (e) => {
+      if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); startRec(); }
+    });
+    micWrap.addEventListener('keyup', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); stopRec(); }
+    });
 
     copyBtn.addEventListener('click', () => doCopy(copyBtn.dataset.text || translationBox.value));
 
